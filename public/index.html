@@ -87,15 +87,16 @@
 
     <script>
         document.getElementById('join-form').addEventListener('submit', function(event) {
-            event.preventDefault();
-            const playerName = document.getElementById('player_name').value;
-            const roomCode = document.getElementById('room_code').value;
-            localStorage.setItem('playerName', playerName);
-            localStorage.setItem('roomCode', roomCode);
+    event.preventDefault();
+    const playerName = document.getElementById('player_name').value;
+    const roomCode = document.getElementById('room_code').value;
+    localStorage.setItem('playerName', playerName);
+    localStorage.setItem('roomCode', roomCode);
 
-            // Redireciona para a página do jogo com os parâmetros de URL
-            window.location.href = `game.html?room=${roomCode}&player=${playerName}`;
-        });
+    // Redireciona para a página do jogo com os parâmetros de URL
+    window.location.href = `game.html?room=${roomCode}&player=${playerName}`;
+});
+
     </script>
 </body>
 </html>
