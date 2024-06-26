@@ -131,90 +131,55 @@
     </div>
 
     <script>
-        // Funções para manipulação da URL
-        function getQueryParams() {
-            const params = {};
-            window.location.search.replace(/^\?/, '').split('&').forEach(param => {
-                const [key, value] = param.split('=');
-                params[key] = decodeURIComponent(value);
-            });
-            return params;
-        }
+       const roomCode = new URLSearchParams(window.location.search).get('room');
+const playerRef = ref(database, `rooms/${roomCode}/users/${userId}`);
 
-        // Inicializa variáveis de sala e jogador
-        const queryParams = getQueryParams();
-        const roomCode = queryParams.room;
-        const playerName = queryParams.player;
+get(playerRef).then((snapshot) => {
+    const currentScore = snapshot.exists() ? snapshot.val().score : 0;
+    const newScore = currentScore + 1;
+    set(playerRef, { userId, score: newScore });
 
-        // Função para ler e escrever dados no LocalStorage
-        function writePlayerData(roomCode, playerName, score) {
-            const roomData = JSON.parse(localStorage.getItem(roomCode)) || {};
-            roomData[playerName] = { score };
-            localStorage.setItem(roomCode, JSON.stringify(roomData));
-        }
+    // Atualiza o placar após enviar a resposta correta
+    updateScoreboard();
+});
 
-        function readPlayerData(roomCode, callback) {
-            const roomData = JSON.parse(localStorage.getItem(roomCode)) || {};
-            callback(roomData);
-        }
+// Limpa o campo de resposta e gera a próxima equação
+document.getElementById('answer').value = '';
+document.getElementById('equation').value = generateNextEquation();
+} else {
+    alert('RESPOSTA ERRADA!!!');
+}
 
-        function generateNextEquation() {
-            const percentages = Array.from({length: 10}, (_, i) => (i + 1) * 10);
-            const maxNumber = 1000;
-            const percentage = percentages[Math.floor(Math.random() * percentages.length)];
-            const number = Math.floor(Math.random() * (maxNumber / 10) + 1) * 10;
-            return `${percentage}% de ${number}`;
-        }
+function updateScoreboard() {
+    const scoreList = document.getElementById('score-list');
+    const playersRef = ref(database, `rooms/${roomCode}/users`);
 
-        function calculateEquation(equation) {
-            try {
-                const [percent, , number] = equation.split(' ');
-                const parsedPercent = parseInt(percent.replace('%', ''));
-                const parsedNumber = parseInt(number);
-                return (parsedPercent / 100) * parsedNumber;
-            } catch {
-                return null;
-            }
-        }
+    // Ordena os jogadores pelo score (decrescente)
+    onValue(playersRef, (snapshot) => {
+        scoreList.innerHTML = ''; // Limpa a lista antes de recriar
+        const players = snapshot.val();
+        const sortedPlayers = Object.entries(players).sort((a, b) => b[1].score - a[1].score);
 
-        function updateScoreboard(players) {
-            const scores = Object.entries(players).sort((a, b) => b[1].score - a[1].score);
-            const scoreList = document.getElementById('score-list');
-            scoreList.innerHTML = '';
-            scores.forEach((score, index) => {
-                const li = document.createElement('li');
-                li.textContent = `${score[0]}: ${score[1].score}`;
-                li.classList.add('player-score');
-                if (index === 0) li.classList.add('first-place');
-                else if (index === 1) li.classList.add('second-place');
-                else if (index === 2) li.classList.add('third-place');
-                scoreList.appendChild(li);
-            });
-        }
-
-        document.getElementById('score-form').addEventListener('submit', function(event) {
-            event.preventDefault();
-            const answer = parseFloat(document.getElementById('answer').value);
-            const equation = document.getElementById('equation').value;
-            const correctAnswer = calculateEquation(equation);
-
-            if (answer === correctAnswer) {
-                readPlayerData(roomCode, (players) => {
-                    const currentScore = players[playerName]?.score || 0;
-                    const newScore = currentScore + 1;
-                    writePlayerData(roomCode, playerName, newScore);
-                    readPlayerData(roomCode, updateScoreboard);
-                });
-
-                document.getElementById('answer').value = '';
-                document.getElementById('equation').value = generateNextEquation();
-            } else {
-                alert('RESPOSTA ERRADA!!!');
-            }
+        sortedPlayers.forEach((player, index) => {
+            const li = document.createElement('li');
+            li.textContent = `${player[1].userId}: ${player[1].score}`;
+            li.classList.add('player-score');
+            if (index === 0) li.classList.add('first-place');
+            else if (index === 1) li.classList.add('second-place');
+            else if (index === 2) li.classList.add('third-place');
+            scoreList.appendChild(li);
         });
+    });
+}
 
-        document.getElementById('equation').value = generateNextEquation();
-        readPlayerData(roomCode, updateScoreboard);
+document.getElementById('score-form').addEventListener('submit', function(event) {
+    event.preventDefault();
+    submitAnswer();
+});
+
+document.getElementById('equation').value = generateNextEquation();
+updateScoreboard();
+
     </script>
 </body>
 </html>
